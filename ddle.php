@@ -143,10 +143,11 @@
     ];
 
     $totalPosts = 0;
-
-    if ($db && $db->link && !$request->form()) {
+    if ($db && $db->link) {
         $totalPosts = $db->getFirst('SELECT COUNT(id) FROM '.PREFIX.'_post');
-        $form['limit'] = $totalPosts;
+        if (!$request->form()) {
+            $form['limit'] = $totalPosts;
+        }
     }
 
     $sqlSelectionCode = 'SELECT id FROM '.PREFIX.'_post';

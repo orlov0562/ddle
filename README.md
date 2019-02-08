@@ -6,11 +6,11 @@
 
 ## Установка
 
-Скопируйте файл ddle.php в корень сайта, туда где у вас index.php
+Скопируйте файл [ddle.php](https://raw.githubusercontent.com/orlov0562/ddle/master/ddle.php) в корень сайта, туда где у вас index.php
 
 ## Использование
 
-Перейдите по адресу site.com/ddle.php
+Перейдите по адресу **site.com/ddle.php***
 Введите логин/пароль (по-умолчанию: **admin / ddle**)
 Используйте :)
 

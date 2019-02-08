@@ -34,4 +34,4 @@ $useHttpBasicAuth = false;
 Обсуждение скрипта [тут](https://www.it-rem.ru/paketnoe-izmenenie-datyi-dlya-postov-dle.html)
 
 ## Скриншот
-
+![Screenshot](/screenshot.png)

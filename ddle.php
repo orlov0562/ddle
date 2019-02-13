@@ -9,7 +9,7 @@
         'admin' => 'ddle'
     ];
 
-    $ver = '1.0.0';
+    $ver = '1.0.1';
 
     set_time_limit(0);
 
@@ -102,6 +102,7 @@
     $request = new DDD_Request;
 
     // -------------------------------------------------------------------------------------------
+
     if ($useHttpBasicAuth) {
         $realm = 'Restricted area';
 
@@ -133,6 +134,10 @@
 
         'use_sort' => $request->form('use_sort'),
         'sort' => $request->form('sort', 'id_asc'),
+
+        'update_comments' => $request->form('update_comments', 1),
+        'update_comments_interval_from' => $request->form('update_comments_interval_from', 1),
+        'update_comments_interval_to' => $request->form('update_comments_interval_to', 7),
 
         'use_sql_append_select' => $request->form('use_sql_append_select'),
         'use_sql_append_update' => $request->form('use_sql_append_update'),
@@ -200,9 +205,33 @@
             );
             try {
                 $db->exec($sql);
+
+                if ($request->form('update_comments')) {
+                    $comments = $db->getRows('SELECT id FROM '.PREFIX.'_comments WHERE post_id='.intval($post['id']).' ORDER BY date ASC');
+                    if ($comments) {
+                        $commentDate = $randomDateTs;
+                        foreach ($comments as $comment) {
+                            $commentDateOffset = rand(
+                                intval($request->form('update_comments_interval_from'))*24*60*60,
+                                intval($request->form('update_comments_interval_to'))*24*60*60
+                            );
+                            $commentDate += $commentDateOffset;
+                            try {
+                                $commentsSql = 'UPDATE '.PREFIX.'_comments SET date="'.date('Y-m-d H:i:s',$commentDate).'" WHERE id='.intval($comment['id']).' LIMIT 1';
+                                $db->exec($commentsSql);
+                            } catch(Exception $ex) {
+                                $submitExecSqlResult = $ex->getMessage().PHP_EOL.PHP_EOL.$sql.PHP_EOL.PHP_EOL.$commentsSql;
+                                break(2);
+                            }
+                        }
+                    }
+                }
+
                 $submitExecSqlResult = true;
+
             } catch(Exception $ex) {
                 $submitExecSqlResult = $ex->getMessage().PHP_EOL.PHP_EOL.$sql;
+                break;
             }
         }
     }
@@ -213,7 +242,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>DDLE</title>
+    <title>DDLE <?=$ver?></title>
 
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.3.0/css/datepicker.css">
@@ -304,7 +333,7 @@
                         </div>
                     </div>
 
-                    <div id="ext-config" class="<?=($form['use_limits'] || $form['use_sort'] || $form['use_sql_append_select'] || $form['use_sql_append_update']) ? '' : 'hidden'?>">
+                    <div id="ext-config" class="<?=($form['use_limits'] || $form['use_sort'] || $form['use_sql_append_select'] || $form['use_sql_append_update'] || !$form['update_comments']) ? '' : 'hidden'?>">
                         <hr>
 
                         <div class="mb15">
@@ -314,11 +343,11 @@
                         <div class="flex mb15">
                             <div class="w250">
                                 Начать с:<br>
-                                <input type="text" name="form[offset]" class="w100p" value="<?=intval($form['offset'])?>" placeholder="0"><br>
+                                <input type="number" min="0" name="form[offset]" class="w100p" value="<?=intval($form['offset'])?>" placeholder="0"><br>
                             </div>
                             <div class="ml15 w250">
                                 Кол-во:<br>
-                                <input type="text" name="form[limit]" class="w100p" value="<?=intval($form['limit'])?>" placeholder="0"><br>
+                                <input type="number" min="1" name="form[limit]" class="w100p" value="<?=intval($form['limit'])?>" placeholder="0"><br>
                             </div>
                         </div>
 
@@ -337,8 +366,8 @@
                                     <option value="id_desc" <?=($form['sort'] == 'id_desc' ? 'selected="selected"' : '')?>>ID, 9&#11166;0</sort>
                                     <option value="rand" <?=($form['sort'] == 'rand' ? 'selected="selected"' : '')?>>В случайном порядке</sort>
                                 </select>
-
                             </div>
+
                         </div>
 
                         <hr>
@@ -367,6 +396,29 @@
                                 <textarea name="form[sql_append_update_where]" class="w100p"><?=htmlspecialchars($form['sql_append_update_where'])?></textarea>
                             </div>
                         </div>
+
+                        <hr>
+
+                        <div class="mb5">
+                            <input type="hidden" name="form[update_comments]" value="0">
+                            <input type="checkbox" name="form[update_comments]" value="1" <?=($form['update_comments']?'checked':'')?>> Согласовать дату комментариев с датой поста
+                        </div>
+
+                        <div class="mb5">
+                            Интервал между комментариями (в днях)
+                        </div>
+
+                        <div class="flex mb5">
+                            <div class="w250">
+                                от:<br>
+                                <input type="number" min="0" name="form[update_comments_interval_from]" class="w100p" value="<?=intval($form['update_comments_interval_from'])?>" placeholder="0"><br>
+                            </div>
+                            <div class="ml15 w250">
+                                до:<br>
+                                <input type="number" min="1" name="form[update_comments_interval_to]" class="w100p" value="<?=intval($form['update_comments_interval_to'])?>" placeholder="0"><br>
+                            </div>
+                        </div>
+                        <div><small>** последовательность комментариев будет сохранена</small></div>
                     </div>
 
                     <hr>
